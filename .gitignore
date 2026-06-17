@@ -1,0 +1,4 @@
+bin/
+obj/
+google-service-account.json
+appsettings.Development.json
