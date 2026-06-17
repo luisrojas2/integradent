@@ -20,6 +20,7 @@
 <ItemGroup>
   <None Update="google-service-account.json">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>Always</CopyToPublishDirectory>
   </None>
 </ItemGroup>
 
