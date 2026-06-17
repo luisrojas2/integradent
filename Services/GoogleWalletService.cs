@@ -18,7 +18,6 @@ public class GoogleWalletService
     private readonly string _issuerId;
     private readonly string _classId;
     private readonly string _origenPermitido;
-    private readonly string _rutaCredenciales;
 
     public GoogleWalletService(WalletDbContext db, IConfiguration config)
     {
@@ -27,7 +26,6 @@ public class GoogleWalletService
         _issuerId = config["GoogleWallet:IssuerId"]!;
         _classId = config["GoogleWallet:ClassId"]!;
         _origenPermitido = config["GoogleWallet:OrigenPermitido"]!;
-        _rutaCredenciales = config["GoogleWallet:RutaCredenciales"]!;
     }
 
     private object ConstruirObjetoDePase(Paciente paciente)
@@ -111,7 +109,16 @@ public class GoogleWalletService
             await CrearObjetoDePacienteAsync(paciente);
         }
 
-        var credencialesJson = await File.ReadAllTextAsync(_rutaCredenciales);
+        var credencialesJson = _config["GoogleWallet:CredencialesJson"];
+        Console.WriteLine($"Length: {credencialesJson?.Length}");
+        Console.WriteLine($"First char: [{credencialesJson?[0]}]");
+        Console.WriteLine($"First 30 chars: {credencialesJson?.Substring(0, Math.Min(30, credencialesJson.Length))}");
+
+            if (string.IsNullOrWhiteSpace(credencialesJson))
+            {
+                throw new Exception("GoogleWallet:CredencialesJson no configurado.");
+            }
+
         using var doc = JsonDocument.Parse(credencialesJson);
         var clientEmail = doc.RootElement.GetProperty("client_email").GetString();
         var privateKeyPem = doc.RootElement.GetProperty("private_key").GetString();
@@ -171,21 +178,17 @@ public class GoogleWalletService
 
     private async Task<string> ObtenerAccessTokenAsync()
     {
-        var credencialesJson = _config["GoogleWallet:CredencialesJson"]
-    ?? await File.ReadAllTextAsync(_rutaCredenciales);
+        var credencialesJson = _config["GoogleWallet:CredencialesJson"];
+        Console.WriteLine($"NULL? {string.IsNullOrWhiteSpace(credencialesJson)}");
+        Console.WriteLine($"Primeros 50 chars: {credencialesJson?.Substring(0, Math.Min(50, credencialesJson.Length))}");
 
-        GoogleCredential credential;
-        if (!string.IsNullOrEmpty(credencialesJson))
+        if (string.IsNullOrWhiteSpace(credencialesJson))
         {
-            credential = GoogleCredential.FromJson(credencialesJson)
-                .CreateScoped("https://www.googleapis.com/auth/wallet_object.issuer");
+            throw new Exception("GoogleWallet:CredencialesJson no configurado.");
         }
-        else
-        {
-            using var stream = new FileStream(_rutaCredenciales, FileMode.Open, FileAccess.Read);
-            credential = GoogleCredential.FromStream(stream)
-                .CreateScoped("https://www.googleapis.com/auth/wallet_object.issuer");
-        }
+
+        var credential = GoogleCredential.FromJson(credencialesJson)
+            .CreateScoped("https://www.googleapis.com/auth/wallet_object.issuer");
 
         return await credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
     }
