@@ -162,12 +162,12 @@ public class GoogleWalletService
         using var http = new HttpClient();
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-        var request = new HttpRequestMessage(HttpMethod.Patch,
+        var request = new HttpRequestMessage(HttpMethod.Put,
             $"https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/{objetoId}")
         {
             Content = new StringContent(JsonSerializer.Serialize(objeto), Encoding.UTF8, "application/json")
         };
-
+        
         var respuesta = await http.SendAsync(request);
         if (!respuesta.IsSuccessStatusCode)
         {
