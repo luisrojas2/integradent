@@ -193,15 +193,20 @@ public class GoogleWalletService
         return await credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
     }
 
-    private string FirmarJwtRS256(Dictionary<string, object> payload, string privateKeyPem)
+    private string FirmarJwtRS256(
+        Dictionary<string, object> payload,
+        string privateKeyPem)
     {
-        using var rsa = RSA.Create();
+        var rsa = RSA.Create();
+
         rsa.ImportFromPem(privateKeyPem.ToCharArray());
 
-        var securityKey = new RsaSecurityKey(rsa);
-        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
+        var credentials = new SigningCredentials(
+            new RsaSecurityKey(rsa),
+            SecurityAlgorithms.RsaSha256);
 
         var header = new JwtHeader(credentials);
+
         var claims = new JwtPayload();
         foreach (var kvp in payload)
         {
@@ -209,6 +214,9 @@ public class GoogleWalletService
         }
 
         var token = new JwtSecurityToken(header, claims);
-        return new JwtSecurityTokenHandler().WriteToken(token);
+
+        var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
+        return jwt;
     }
 }
