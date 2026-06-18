@@ -7,7 +7,9 @@ namespace IntegraDentWallet.Services;
 
 public static class GoogleWalletSetup
 {
-    public static async Task CrearClaseDeLealtadAsync(string issuerId, string classId, string rutaCredenciales, string urlLogoCuadrado)
+    public static async Task CrearClaseDeLealtadAsync(
+        string issuerId, string classId, string rutaCredenciales,
+        string urlLogoCuadrado, string? urlHeroImage = null)
     {
         using var stream = new FileStream(rutaCredenciales, FileMode.Open, FileAccess.Read);
         var credential = GoogleCredential
@@ -16,21 +18,16 @@ public static class GoogleWalletSetup
 
         var accessToken = await credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
 
-        var clase = new
+        var claseDict = new Dictionary<string, object?>
         {
-            id = classId,
-            issuerName = "IntegraDent",
-            programName = "Programa de fidelidad IntegraDent",
-            programLogo = new { sourceUri = new { uri = urlLogoCuadrado } },
-            hexBackgroundColor = "#0f6e56",
-            countryCode = "GT",
-            reviewStatus = "UNDER_REVIEW",
-            textModulesData = new[]
-            {
-                new { id = "proxima_cita", header = "Proxima cita", body = "Sin cita programada" },
-                new { id = "promo", header = "Promocion activa", body = "Sin promociones por el momento" }
-            },
-            linksModuleData = new
+            ["id"] = classId,
+            ["issuerName"] = "IntegraDent",
+            ["programName"] = "Programa de fidelidad IntegraDent",
+            ["programLogo"] = new { sourceUri = new { uri = urlLogoCuadrado } },
+            ["hexBackgroundColor"] = "#1d9e75",
+            ["countryCode"] = "GT",
+            ["reviewStatus"] = "UNDER_REVIEW",
+            ["linksModuleData"] = new
             {
                 uris = new[]
                 {
@@ -40,6 +37,13 @@ public static class GoogleWalletSetup
             }
         };
 
+        if (!string.IsNullOrEmpty(urlHeroImage))
+        {
+            claseDict["heroImage"] = new { sourceUri = new { uri = urlHeroImage } };
+        }
+
+        var clase = claseDict;
+
         using var http = new HttpClient();
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -47,9 +51,20 @@ public static class GoogleWalletSetup
         var respuesta = await http.PostAsync(
             "https://walletobjects.googleapis.com/walletobjects/v1/loyaltyClass", content);
 
+        if (respuesta.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            var contentPatch = new StringContent(JsonSerializer.Serialize(clase), Encoding.UTF8, "application/json");
+            var request = new HttpRequestMessage(HttpMethod.Patch,
+                $"https://walletobjects.googleapis.com/walletobjects/v1/loyaltyClass/{classId}")
+            {
+                Content = contentPatch
+            };
+            respuesta = await http.SendAsync(request);
+        }
+
         var cuerpo = await respuesta.Content.ReadAsStringAsync();
         Console.WriteLine(respuesta.IsSuccessStatusCode
-            ? $"Clase creada correctamente:\n{cuerpo}"
+            ? $"Clase creada/actualizada correctamente:\n{cuerpo}"
             : $"Error ({(int)respuesta.StatusCode}):\n{cuerpo}");
     }
 }
