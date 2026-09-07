@@ -176,6 +176,43 @@ public class GoogleWalletService
         }
     }
 
+public async Task EnviarNotificacionAsync(int pacienteId, string titulo, string mensaje)
+{
+    var paciente = await _db.Pacientes.FirstOrDefaultAsync(p => p.Id == pacienteId);
+
+    if (paciente == null || !paciente.TienePaseGoogle)
+    {
+        return;
+    }
+
+    var accessToken = await ObtenerAccessTokenAsync();
+    var objetoId = $"{_issuerId}.paciente-{paciente.Id}";
+
+    var body = new
+    {
+        message = new
+        {
+            header = titulo,
+            body = mensaje,
+            messageType = "TEXT"
+        }
+    };
+
+    using var http = new HttpClient();
+    http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+    var content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+    var respuesta = await http.PostAsync(
+        $"https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/{objetoId}/addMessage",
+        content);
+
+    if (!respuesta.IsSuccessStatusCode)
+    {
+        var cuerpo = await respuesta.Content.ReadAsStringAsync();
+        throw new Exception($"Error enviando notificacion: {cuerpo}");
+    }
+}
+
     private async Task<string> ObtenerAccessTokenAsync()
     {
         var credencialesJson = _config["GoogleWallet:CredencialesJson"];

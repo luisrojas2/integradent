@@ -24,6 +24,15 @@ public class PacientesController : ControllerBase
     public record CrearPacienteRequest(string Nombre, string Telefono, string? Email);
     public record SumarPuntosRequest(int Cantidad);
 
+    public record EnviarNotificacionRequest(string Titulo, string Mensaje);
+
+    [HttpPost("{id}/notificar")]
+    public async Task<IActionResult> EnviarNotificacion(int id, [FromBody] EnviarNotificacionRequest request)
+    {
+        await _wallet.EnviarNotificacionAsync(id, request.Titulo, request.Mensaje);
+        return Ok();
+    }
+
     [HttpGet]
     public async Task<IActionResult> Listar([FromQuery] string? buscar)
     {
