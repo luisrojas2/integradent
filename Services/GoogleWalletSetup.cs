@@ -24,7 +24,7 @@ public static class GoogleWalletSetup
             ["issuerName"] = "IntegraDent",
             ["programName"] = "Programa de fidelidad IntegraDent",
             ["programLogo"] = new { sourceUri = new { uri = urlLogoCuadrado } },
-            ["hexBackgroundColor"] = "#1d9e75",
+            ["hexBackgroundColor"] = "#1d599e",
             ["countryCode"] = "GT",
             ["reviewStatus"] = "UNDER_REVIEW",
             ["linksModuleData"] = new
